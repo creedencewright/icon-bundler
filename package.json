@@ -1,0 +1,32 @@
+{
+  "name": "icon-bundler",
+  "version": "0.1.0",
+  "description": "svg and png sprite bundling done easy",
+  "main": "gulpfile.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/creedencewright/icon-bundler.git"
+  },
+  "author": "Denis Smirnov <smv.denis@gmail.com>",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/creedencewright/icon-bundler/issues"
+  },
+  "homepage": "https://github.com/creedencewright/icon-bundler#readme",
+  "dependencies": {
+    "chalk": "^1.1.1",
+    "gaze": "^0.5.2",
+    "glob": "^6.0.4",
+    "gulp": "^3.9.0",
+    "gulp-less": "^3.0.5",
+    "gulp.spritesmith": "^6.0.1",
+    "handlebars": "^4.0.5",
+    "mkdirp": "^0.5.1",
+    "svg-sprite": "^1.2.19",
+    "url2": "^1.0.4",
+    "vinyl": "^1.1.0"
+  }
+}

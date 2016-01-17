@@ -1,0 +1,17 @@
+{{#each pngs}}
+    @{{name}}: '{{name}}' '{{image}}' {{pos}} {{w}} {{h}};
+{{/each}}
+
+{{#each svgs}}
+    @{{name}}: '{{name}}' '{{image}}' {{pos}} {{w}} {{h}};
+{{/each}}
+
+.{{mixinName}}(@icon) {
+    width: extract(@icon, 5);
+    height: extract(@icon, 6);
+
+    @sprite-image: extract(@icon, 2);
+    @sprite-image-bare: ~`"@{sprite-image}".slice(1, -1)`;
+    background-image: url(@sprite-image-bare);
+    background-position: extract(@icon, 3) extract(@icon, 4);
+}
