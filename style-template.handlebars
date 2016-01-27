@@ -1,9 +1,9 @@
 {{#each pngs}}
-    @{{name}}: '{{name}}' '{{image}}' {{pos}} {{w}} {{h}};
+    @{{name}}: '{{name}}' '{{image}}' {{pos}} {{w}} {{h}} {{#retinize ../this name}}{{ok}}{{/retinize}};
 {{/each}}
 
 {{#each svgs}}
-    @{{name}}: '{{name}}' '{{image}}' {{pos}} {{w}} {{h}};
+    @{{name}}: '{{name}}' '{{image}}' {{pos}} {{w}} {{h}} false;
 {{/each}}
 
 .{{mixinName}}(@icon) {
@@ -14,4 +14,19 @@
     @sprite-image-bare: ~`"@{sprite-image}".slice(1, -1)`;
     background-image: url(@sprite-image-bare);
     background-position: extract(@icon, 3) extract(@icon, 4);
+
+    .retinize() when (extract(@icon, 7) = true) {
+        @media only screen and (-webkit-min-device-pixel-ratio:1.5),only screen and (min--moz-device-pixel-ratio:1.5),only screen and (min-device-pixel-ratio:1.5) {
+            @name: extract(@icon, 1);
+            @var: "@{name}-2x";
+            background-size: {{math pngSprite.width "/" 2}}px {{math pngSprite.height "/" 2}}px;
+
+            @sprite-offset-x: extract(@@var, 3);
+            @sprite-offset-y: extract(@@var, 4);
+            background-position: @sprite-offset-x/2px @sprite-offset-y/2px;
+            background-repeat: no-repeat;
+        }
+    }
+
+    .retinize();
 }

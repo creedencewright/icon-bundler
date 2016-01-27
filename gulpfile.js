@@ -5,6 +5,9 @@ var gulp        = require('gulp'),
     File        = require('vinyl'),
     SVGSpriter  = require('svg-sprite'),
     spritesmith = require('gulp.spritesmith'),
+    prefix      = require('gulp-autoprefixer'),
+    minifyCss   = require('gulp-minify-css'),
+    reload      = require('gulp-livereload'),
     less        = require('gulp-less'),
     glob        = require('glob'),
     path        = require('path'),
@@ -15,9 +18,11 @@ var gulp        = require('gulp'),
 var templateSource = fs.readFileSync(__dirname + '/style-template.handlebars', 'utf8');
 
 gulp.task('icon', function(gulpcb) {
-    var baseStylePath  = './public/stylesheets/';
-    var spriteOutPath  = './public/images/';
+    var baseStylePath  = '../svg-sprites/public/stylesheets/111/';
+    var spriteOutPath  = '../svg-sprites/public/images/111/';
     var styleOutPath   = baseStylePath;
+    var svgIn          = '../svg-sprites/public/images/svg/**/*.svg';
+    var pngIn          = '../svg-sprites/public/images/svg/**/*.png';
     var spriteFilename = 'sprite';
     var styleFilename  = 'icons';
     var mixinName      = 'icon';
@@ -36,7 +41,7 @@ gulp.task('icon', function(gulpcb) {
             }
         });
 
-        glob.glob('./public/images/svg/*.svg', function(err, files) {
+        glob.glob(svgIn, function(err, files) {
             files.forEach(function(file) {
                 var filepath = path.resolve(file);
 
@@ -70,7 +75,7 @@ gulp.task('icon', function(gulpcb) {
     });
 
     var p2 = new Promise(function(resolve) {
-        var spriteData = gulp.src('./public/images/svg/*.png')
+        var spriteData = gulp.src(pngIn)
             .pipe(spritesmith({
                 imgName: spriteFilename + '.png',
                 cssName: 'style.css',
@@ -88,7 +93,13 @@ gulp.task('icon', function(gulpcb) {
                         };
                     };
 
-                    resolve(data.sprites.map(setImageData));
+                    resolve({
+                        pngs: data.sprites.map(setImageData),
+                        sprite: {
+                            width: data.spritesheet.width,
+                            height: data.spritesheet.height,
+                        }
+                    });
 
                     return ''; // prevents css file rendering
                 }
@@ -98,6 +109,22 @@ gulp.task('icon', function(gulpcb) {
     });
 
     var compile = function(values) {
+        handlebars.registerHelper('retinize', function(data, name) {
+                    return data.pngs.filter(function(s) {return s.name === name + '-2x';}).length !== 0;
+                });
+        handlebars.registerHelper('math', function(lvalue, operator, rvalue) {
+            lvalue = parseFloat(lvalue);
+            rvalue = parseFloat(rvalue);
+
+            return {
+                "+": lvalue + rvalue,
+                "-": lvalue - rvalue,
+                "*": lvalue * rvalue,
+                "/": lvalue / rvalue,
+                "%": lvalue % rvalue
+            }[operator];
+        });
+
         var template = handlebars.compile(templateSource);
 
         var templateData = {
@@ -106,7 +133,18 @@ gulp.task('icon', function(gulpcb) {
             mixinName: mixinName
         };
 
-        var cssStr = template(templateData);
+        var cssStr = template({
+            svgs: values[0],
+            pngSprite: values[1].sprite,
+            pngs: values[1].pngs.map(function(png) {
+                if (png.name.indexOf('@2x') === -1) return png;
+
+                png.name = png.name.replace('@2x', '-2x');
+
+                return png;
+            }),
+            mixinName: mixinName
+        });
 
         mkdirp.sync(styleOutPath);
 
@@ -121,9 +159,12 @@ gulp.task('icon', function(gulpcb) {
 });
 
 gulp.task('less', function() {
-    gulp.src('./public/stylesheets/style.less')
+    gulp.src('../svg-sprites/public/stylesheets/style.less')
         .pipe(less())
-        .pipe(gulp.dest('./public/stylesheets/'));
+        .pipe(minifyCss())
+        .pipe(prefix('last 3 versions'))
+        .pipe(gulp.dest('../svg-sprites/public/stylesheets/111/'))
+        .pipe(reload())
 });
 
 gulp.task('watch', ['icon', 'less'], function() {
@@ -144,6 +185,7 @@ gulp.task('watch', ['icon', 'less'], function() {
 
     gaze('public/stylesheets/**/*.less', function() {
         this.on('added', function(filepath) {
+            console.log(chalk.green(path.basename(filepath) + " was added"));
             gulp.start('less');
         });
         this.on('deleted', function(filepath) {
