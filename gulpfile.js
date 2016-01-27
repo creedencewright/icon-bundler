@@ -1,6 +1,7 @@
 var gulp        = require('gulp'),
     mkdirp      = require('mkdirp'),
     chalk       = require('chalk'),
+    plumber     = require('gulp-plumber'),
     url         = require('url2'),
     File        = require('vinyl'),
     SVGSpriter  = require('svg-sprite'),
@@ -9,6 +10,7 @@ var gulp        = require('gulp'),
     minifyCss   = require('gulp-minify-css'),
     reload      = require('gulp-livereload'),
     less        = require('gulp-less'),
+    buffer      = require('vinyl-buffer')
     glob        = require('glob'),
     path        = require('path'),
     fs          = require('fs'),
@@ -47,7 +49,7 @@ gulp.task('icon', function(gulpcb) {
 
                 spriter.add(new File({
                     path: filepath, // Absolute path to the SVG file
-                    base: path.dirname(filepath), // Base path (see `name` argument)
+                    base: path.dirname(filepath),
                     contents: fs.readFileSync(filepath) // SVG file contents
                 }));
             });
@@ -105,13 +107,16 @@ gulp.task('icon', function(gulpcb) {
                 }
             }));
 
-        spriteData.img.pipe(gulp.dest(spriteOutPath))
+        spriteData.img
+            .pipe(buffer()) // spritesmith 6.0 returns Stream instead of Buffer
+            .pipe(imagemin({quality: '70-90', speed: 4})())
+            .pipe(gulp.dest(spriteOutPath))
     });
 
     var compile = function(values) {
         handlebars.registerHelper('retinize', function(data, name) {
-                    return data.pngs.filter(function(s) {return s.name === name + '-2x';}).length !== 0;
-                });
+            return data.pngs.filter(function(s) {return s.name === name + '-2x';}).length !== 0;
+        });
         handlebars.registerHelper('math', function(lvalue, operator, rvalue) {
             lvalue = parseFloat(lvalue);
             rvalue = parseFloat(rvalue);
@@ -160,6 +165,10 @@ gulp.task('icon', function(gulpcb) {
 
 gulp.task('less', function() {
     gulp.src('../svg-sprites/public/stylesheets/style.less')
+        .pipe(plumber(function(err) {
+            console.log(chalk.bgRed.white(err.message));
+            this.emit('end');
+        }))
         .pipe(less())
         .pipe(minifyCss())
         .pipe(prefix('last 3 versions'))
@@ -185,15 +194,15 @@ gulp.task('watch', ['icon', 'less'], function() {
 
     gaze('public/stylesheets/**/*.less', function() {
         this.on('added', function(filepath) {
-            console.log(chalk.green(path.basename(filepath) + " was added"));
+            console.log('+' + chalk.green(path.basename(filepath)));
             gulp.start('less');
         });
         this.on('deleted', function(filepath) {
-            console.log(chalk.red(path.basename(filepath) + " was deleted"));
+            console.log('-' + chalk.red(path.basename(filepath)));
             gulp.start('less');
         });
         this.on('changed', function(filepath) {
-            console.log(chalk.yellow(path.basename(filepath) + " was changed"));
+            console.log('*' + chalk.yellow(path.basename(filepath)));
             gulp.start('less');
         });
     })
